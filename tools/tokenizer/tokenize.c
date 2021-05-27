@@ -356,7 +356,8 @@ int tokenize(char *token, const char **type, unsigned *line, unsigned *col)
         while ((cc = get()) != '\n' && cc != EOF)
           ;
         // cc == '\n' || cc == EOF
-        goto restart;
+	    *type = "c";
+        break;
       }
 
       if (cc == '*') {
@@ -378,7 +379,8 @@ int tokenize(char *token, const char **type, unsigned *line, unsigned *col)
         } while (cc != '*' || nc != '/');
         // cc == '*' && nc == '/'
         cc = get();
-        goto restart;
+	    *type = "lc";
+        break;
       }
       // seen / but not // or /*
       unget(cc); // char after /
@@ -977,6 +979,7 @@ fputs(
 	    if (!nowarn)
 		fprintf(stderr, "Gave both k and K as arguments");
 	}
+    break;
     case 'K':
 	if (space_token == 0) {
 	    separate_space_token = 1;
@@ -984,6 +987,7 @@ fputs(
 	    if (!nowarn)
 		fprintf(stderr, "Gave both k and K as arguments");
 	}
+    break;
     case 'v':
       verbose = 1;
       break;
