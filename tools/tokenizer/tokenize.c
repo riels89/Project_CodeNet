@@ -143,6 +143,8 @@ static int nowarn = 0;		// when 1 warnings are suppressed
 static int hash_as_comment = 0;	// when 1 treat # as line comment
 static int start_token = 0;	// when 1 start filename pseudo-token
 static int newline_token = 0;	// when 1 output newline pseudo-token
+static int space_token = 0;     // when 1 use a space/tab token to indicate whitespace
+static int separate_space_token = 0; // when 1 keep each sapce/tab as separate token
 static int continuous_files = 0;// when 1 do not reset after each file
 static enum { C, CPP, JAVA, PYTHON } source = CPP;
 
@@ -293,8 +295,32 @@ int tokenize(char *token, const char **type, unsigned *line, unsigned *col)
     // Skip (abutted) space and control chars and comments:
     // [ \t\f\v\n]
     //    while (cc <= ' ' && cc != EOF)
-    while (isspace(cc) && cc != EOF && cc != '\n')
-      cc = get();
+    if (space_token && isspace(cc) && cc != EOF && cc != '\n') {
+	while (isspace(cc) && cc != EOF && cc != '\n') {
+	    token[len++] = cc;
+	    cc = get();
+	}
+	*col = *col + 1;
+	*type = "s";
+	unget(cc);         
+	cc = token[len - 1]; // restore last char
+	break;
+    }
+    else if (separate_space_token && isspace(cc) && cc != EOF && cc != '\n') {
+	*col = *col + 1;
+	if (cc == '\t' ) {
+	    *type = "t";
+	}
+	else {
+	    *type = "s";
+	}
+	token[len++] = cc;
+	break;
+    }
+    else {
+	while (isspace(cc) && cc != EOF && cc != '\n')
+	    cc = get();
+    }
     if (cc == EOF)
       return 0;
     if (cc == '\n') {
@@ -838,7 +864,7 @@ int main(int argc, char *argv[])
   extern int opterr;
   extern int optind;
   int option;
-  char const *opt_str = "1cdhjl:m:no:rsvwa";
+  char const *opt_str = "1cdhjl:m:no:rsvwakK";
   char usage_str[80];
 
   char token[MAX_TOKEN+1];
@@ -944,7 +970,20 @@ fputs(
     case 's':
       start_token = 1;
       break;
-
+    case 'k':
+	if (separate_space_token == 0) {
+	    space_token = 1;
+	} else {
+	    if (!nowarn)
+		fprintf(stderr, "Gave both k and K as arguments");
+	}
+    case 'K':
+	if (space_token == 0) {
+	    separate_space_token = 1;
+	} else {
+	    if (!nowarn)
+		fprintf(stderr, "Gave both k and K as arguments");
+	}
     case 'v':
       verbose = 1;
       break;
